@@ -154,18 +154,9 @@ def create_app() -> FastAPI:
 
     app = FastAPI(title="Gmail Promotions Offers API", version="0.1.0")
 
-    origins: list[str]
-    if settings.frontend_base_url:
-        origins = [str(settings.frontend_base_url)]
-        for local_origin in ("http://localhost:5173", "http://localhost:5174"):
-            if local_origin not in origins:
-                origins.append(local_origin)
-    else:
-        origins = ["*"]
-
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=origins,
+        allow_origin_regex=r"https://.*",
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"]
