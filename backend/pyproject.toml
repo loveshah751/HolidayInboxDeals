@@ -1,0 +1,17 @@
+[project]
+name = "backend"
+version = "0.1.0"
+description = "FastAPI backend for Gmail Promotions Offers app"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "httpx",
+    "pydantic-settings",
+    "itsdangerous",
+    "google-auth",
+    "google-auth-oauthlib",
+    "google-api-python-client",
+    "PyJWT",
+]
