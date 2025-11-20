@@ -1,0 +1,20 @@
+# macOS
+.DS_Store
+
+# Python / backend
+backend/.venv/
+backend/.uv-cache/
+backend/__pycache__/
+backend/.python-version
+backend/.env
+backend/GMAIL_CREDENTIALS_FILE.json
+backend/mcp/token.json
+
+# Frontend / Node
+frontend/node_modules/
+frontend/dist/
+frontend/.env*
+
+# Editor
+.vscode/
+.idea/
