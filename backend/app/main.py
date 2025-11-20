@@ -292,7 +292,10 @@ def create_app() -> FastAPI:
             verified=True,
             gmail_address=session.gmail_address,
         )
-        response = RedirectResponse(url=str(settings.frontend_base_url or settings.backend_base_url), status_code=status.HTTP_302_FOUND)
+        redirect_target = settings.frontend_base_url or settings.backend_base_url
+        if not redirect_target:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Frontend URL not configured")
+        response = RedirectResponse(url=str(redirect_target), status_code=status.HTTP_302_FOUND)
         response.set_cookie(
             key=SESSION_COOKIE_NAME,
             value=cookie_value,
