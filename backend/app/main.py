@@ -153,6 +153,7 @@ def create_app() -> FastAPI:
     settings = get_settings()
 
     app = FastAPI(title="Gmail Promotions Offers API", version="0.1.0")
+    cookie_samesite = "none" if settings.cookie_secure else "lax"
 
     app.add_middleware(
         CORSMiddleware,
@@ -201,14 +202,14 @@ def create_app() -> FastAPI:
             value=cookie_value,
             httponly=True,
             secure=settings.cookie_secure,
-            samesite="lax",
+            samesite=cookie_samesite,
         )
         response.set_cookie(
             key="google_oauth_state",
             value=state,
             httponly=True,
             secure=settings.cookie_secure,
-            samesite="lax",
+            samesite=cookie_samesite,
         )
         return response
 
@@ -297,7 +298,7 @@ def create_app() -> FastAPI:
             value=cookie_value,
             httponly=True,
             secure=settings.cookie_secure,
-            samesite="lax",
+            samesite=cookie_samesite,
         )
         response.delete_cookie("google_oauth_state")
         return response
