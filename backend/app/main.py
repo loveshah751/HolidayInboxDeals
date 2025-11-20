@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any, List
 
 import secrets
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 from google_auth_oauthlib.flow import Flow
@@ -80,13 +80,6 @@ def build_google_flow(settings: Settings, redirect_uri: str) -> Flow:
         }
     }
     return Flow.from_client_config(client_config, scopes=GMAIL_SCOPES, redirect_uri=redirect_uri)
-
-
-def get_optional_session(
-    request: Request,
-    manager: SessionManager = Depends(get_session_manager),
-) -> SessionData | None:
-    return manager.read_cookie(request.cookies.get(SESSION_COOKIE_NAME))
 
 
 def filter_recent_emails(emails: List[dict[str, Any]], days: int = 30) -> List[dict[str, Any]]:
@@ -186,32 +179,14 @@ def create_app() -> FastAPI:
     ) -> JSONResponse:
         redirect_uri = str(settings.google_redirect_uri or f"{settings.backend_base_url}/oauth/google/callback")
         flow = build_google_flow(settings, redirect_uri=redirect_uri)
-        authorization_url, state = flow.authorization_url(
+        state_token = manager.create_state_token(current_user.user_id, current_user.email)
+        authorization_url, _ = flow.authorization_url(
             access_type="offline",
             include_granted_scopes="true",
             prompt="consent",
+            state=state_token,
         )
-        cookie_value = manager.create_cookie(
-            current_user.user_id,
-            verified=False,
-            gmail_address=current_user.email,
-        )
-        response = JSONResponse({"auth_url": authorization_url})
-        response.set_cookie(
-            key=SESSION_COOKIE_NAME,
-            value=cookie_value,
-            httponly=True,
-            secure=settings.cookie_secure,
-            samesite=cookie_samesite,
-        )
-        response.set_cookie(
-            key="google_oauth_state",
-            value=state,
-            httponly=True,
-            secure=settings.cookie_secure,
-            samesite=cookie_samesite,
-        )
-        return response
+        return JSONResponse({"auth_url": authorization_url})
 
     @router.get("/offers", response_model=OffersResponse)
     async def offers(
@@ -260,19 +235,15 @@ def create_app() -> FastAPI:
 
     @app.get("/oauth/google/callback")
     async def oauth_google_callback(
-        request: Request,
         code: str,
         state: str | None = None,
         settings: Settings = Depends(get_settings),
         manager: SessionManager = Depends(get_session_manager),
         nhost_client: NhostGraphQLClient = Depends(get_nhost_client),
-        session: SessionData | None = Depends(get_optional_session),
     ) -> RedirectResponse:
+        session = manager.read_state_token(state)
         if not session:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Session missing for callback")
-        expected_state = request.cookies.get("google_oauth_state")
-        if not expected_state or expected_state != (state or ""):
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="State mismatch")
         redirect_uri = str(settings.google_redirect_uri or f"{settings.backend_base_url}/oauth/google/callback")
         flow = build_google_flow(settings, redirect_uri=redirect_uri)
         flow.fetch_token(code=code)

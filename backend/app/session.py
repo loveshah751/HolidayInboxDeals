@@ -1,3 +1,4 @@
+import secrets
 from dataclasses import dataclass
 from typing import Optional
 
@@ -23,6 +24,7 @@ class SessionManager:
     def create_cookie(self, user_id: str, *, verified: bool, gmail_address: str | None = None) -> str:
         return self._serializer.dumps(
             {
+                "purpose": "session",
                 "user_id": user_id,
                 "gmail_address": gmail_address,
                 "verified": verified,
@@ -30,11 +32,8 @@ class SessionManager:
         )
 
     def read_cookie(self, raw_cookie: Optional[str]) -> Optional[SessionData]:
-        if not raw_cookie:
-            return None
-        try:
-            payload = self._serializer.loads(raw_cookie)
-        except BadSignature:
+        payload = self._load_payload(raw_cookie)
+        if not payload or payload.get("purpose") != "session":
             return None
         user_id = payload.get("user_id")
         if not user_id:
@@ -44,6 +43,37 @@ class SessionManager:
             gmail_address=payload.get("gmail_address"),
             verified=bool(payload.get("verified", False)),
         )
+
+    def create_state_token(self, user_id: str, gmail_address: str | None = None) -> str:
+        return self._serializer.dumps(
+            {
+                "purpose": "google_state",
+                "user_id": user_id,
+                "gmail_address": gmail_address,
+                "nonce": secrets.token_urlsafe(8),
+            }
+        )
+
+    def read_state_token(self, token: Optional[str]) -> Optional[SessionData]:
+        payload = self._load_payload(token)
+        if not payload or payload.get("purpose") != "google_state":
+            return None
+        user_id = payload.get("user_id")
+        if not user_id:
+            return None
+        return SessionData(
+            user_id=user_id,
+            gmail_address=payload.get("gmail_address"),
+            verified=False,
+        )
+
+    def _load_payload(self, raw: Optional[str]) -> Optional[dict]:
+        if not raw:
+            return None
+        try:
+            return self._serializer.loads(raw)
+        except BadSignature:
+            return None
 
 
 async def require_session(request: Request, manager: SessionManager) -> SessionData:
