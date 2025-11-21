@@ -274,7 +274,6 @@ def create_app() -> FastAPI:
             secure=settings.cookie_secure,
             samesite=cookie_samesite,
         )
-        response.delete_cookie("google_oauth_state")
         return response
 
     @app.post("/api/logout", status_code=status.HTTP_204_NO_CONTENT)

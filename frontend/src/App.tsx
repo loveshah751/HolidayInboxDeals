@@ -32,6 +32,8 @@ import { fetchConnectUrl, fetchSession } from "./api";
 import { useOffers } from "./hooks/useOffers";
 import { nhost } from "./nhost";
 import "./styles.css";
+import { ChristmasBackground } from "./ChristmasBackground";
+import { WishListWall } from "./WishListWall";
 
 const AUTO_CONNECT_STORAGE_KEY = "gmailAutoConnectUser";
 const SPECIAL_USER_EMAIL = import.meta.env.VITE_SPECIAL_USER_EMAIL?.toLowerCase();
@@ -353,8 +355,14 @@ export function App() {
 
   return (
     <ThemeProvider theme={theme}>
+      <ChristmasBackground />
       <CssBaseline />
-      <AppBar position="static" color="transparent" elevation={0} sx={{ borderBottom: "1px solid #e2e8f0" }}>
+      <AppBar
+        position="static"
+        color="transparent"
+        elevation={0}
+        sx={{ borderBottom: "1px solid #e2e8f0", backgroundColor: "#ffffff", color: "#0f172a" }}
+      >
         <Container maxWidth="lg">
           <Stack direction="row" justifyContent="space-between" alignItems="center" py={2}>
             <Stack direction="row" alignItems="center" spacing={1}>
@@ -483,16 +491,18 @@ export function App() {
                 (err, idx) =>
                   err && (
                     <Typography key={idx} color="error" variant="body2">
-                        {err}
-                      </Typography>
-                    ),
-                )}
-              </CardContent>
-            </Card>
-          )}
+                      {err}
+                    </Typography>
+                  ),
+              )}
+            </CardContent>
+          </Card>
+        )}
 
-          {showOffers ? (
-            <Stack spacing={2}>
+        {showOffers && <WishListWall offerCount={offers.length} connected={connected} />}
+
+        {showOffers ? (
+          <Stack spacing={2}>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
                 <Typography variant="h5" fontWeight={600}>
                   Latest promotions
