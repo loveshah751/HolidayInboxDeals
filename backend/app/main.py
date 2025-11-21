@@ -243,7 +243,13 @@ def create_app() -> FastAPI:
     ) -> RedirectResponse:
         session = manager.read_state_token(state)
         if not session:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Session missing for callback")
+            target = settings.frontend_base_url or settings.backend_base_url
+            if not target:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Session missing for callback")
+            return RedirectResponse(
+                url=f"{target}?error=gmail_callback",
+                status_code=status.HTTP_302_FOUND,
+            )
         redirect_uri = str(settings.google_redirect_uri or f"{settings.backend_base_url}/oauth/google/callback")
         flow = build_google_flow(settings, redirect_uri=redirect_uri)
         flow.fetch_token(code=code)
