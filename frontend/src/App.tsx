@@ -107,12 +107,24 @@ export function App() {
 
   const loadSession = useCallback(async () => {
     if (!nhost.getUserSession()?.accessToken) {
-      setConnected(false);
-      setGmailAddress(null);
-      setSessionError(null);
-      setNeedsReconnect(false);
-      setSessionChecked(true);
-      return;
+      try {
+        const refreshed = await nhost.auth.refreshSession();
+        if (!refreshed?.accessToken) {
+          setConnected(false);
+          setGmailAddress(null);
+          setSessionError(null);
+          setNeedsReconnect(false);
+          setSessionChecked(true);
+          return;
+        }
+      } catch {
+        setConnected(false);
+        setGmailAddress(null);
+        setSessionError(null);
+        setNeedsReconnect(false);
+        setSessionChecked(true);
+        return;
+      }
     }
     setSessionLoading(true);
     setSessionError(null);
