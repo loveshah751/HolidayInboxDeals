@@ -108,7 +108,7 @@ export function App() {
   const loadSession = useCallback(async () => {
     if (!nhost.getUserSession()?.accessToken) {
       try {
-        const refreshed = await nhost.auth.refreshSession();
+        const refreshed = await nhost.refreshSession();
         if (!refreshed?.accessToken) {
           setConnected(false);
           setGmailAddress(null);
