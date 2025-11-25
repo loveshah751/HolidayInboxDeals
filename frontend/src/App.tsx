@@ -106,7 +106,17 @@ export function App() {
   const { offers, loading: offersLoading, error: offersError, nextPageToken, refresh } = useOffers(connected, handleInvalidToken);
 
   const loadSession = useCallback(async () => {
-    if (!nhost.getUserSession()?.accessToken) {
+    const tryFetchSession = async () => {
+      const session = await fetchSession();
+      setConnected(session.connected);
+      setGmailAddress(session.gmail_address ?? null);
+      setNeedsReconnect(!session.connected);
+    };
+
+    const ensureToken = async () => {
+      if (nhost.getUserSession()?.accessToken) {
+        return true;
+      }
       try {
         const refreshed = await nhost.refreshSession();
         if (!refreshed?.accessToken) {
@@ -115,24 +125,27 @@ export function App() {
           setSessionError(null);
           setNeedsReconnect(false);
           setSessionChecked(true);
-          return;
+          return false;
         }
+        return true;
       } catch {
         setConnected(false);
         setGmailAddress(null);
         setSessionError(null);
         setNeedsReconnect(false);
         setSessionChecked(true);
-        return;
+        return false;
       }
+    };
+
+    if (!(await ensureToken())) {
+      return;
     }
+
     setSessionLoading(true);
     setSessionError(null);
     try {
-      const session = await fetchSession();
-      setConnected(session.connected);
-      setGmailAddress(session.gmail_address ?? null);
-      setNeedsReconnect(!session.connected);
+      await tryFetchSession();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unable to check Gmail status";
       const lower = message.toLowerCase();
@@ -141,6 +154,15 @@ export function App() {
         lower.includes("request failed: 401") ||
         lower.includes("invalid token")
       ) {
+        try {
+          const refreshed = await nhost.refreshSession();
+          if (refreshed?.accessToken) {
+            await tryFetchSession();
+            return;
+          }
+        } catch {
+          // fall through to reset state below
+        }
         setSessionError(null);
       } else {
         setSessionError(message);
